@@ -1,0 +1,102 @@
+---
+- hosts: all
+  remote_user: root
+  tasks:
+    - name: judge ssh keys
+      shell: ls ~/.ssh/id_rsa.pub
+      ignore_errors: True
+      register: result
+    - name: generate ssh keys
+      command: ssh-keygen -N '' -f /root/.ssh/id_rsa
+      when: result.stderr!=''
+    - name: ssh-copy
+      authorized_key: user=root key="{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    - name: install apt-transport-https
+      apt: name=apt-transport-https state=present update_cache=yes
+    - name: install ca-certificates
+      apt: name=ca-certificates state=present update_cache=yes
+    - name: install curl
+      apt: name=curl state=present update_cache=yes
+    - name: install software-properties-common
+      apt: name=software-properties-common state=present update_cache=yes
+    - name: install gnupg2
+      apt: name=gnupg2 state=present update_cache=yes
+    - name: install python3-pip
+      apt: name=python3-pip state=present update_cache=yes
+    - name: install pexpect
+      command: pip3 install pexpect
+#    - name: add yq repository
+#      command: add-apt-repository ppa:rmescandon/yq
+#    - name: install yq
+#      command: snap install yq
+    - name: add yq repository
+      command: add-apt-repository ppa:rmescandon/yq -y
+    - name: install yq
+      apt: name=yq state=present update_cache=yes
+    - name: copy k8s apt-key
+      copy:
+        src: k8s.gpg
+        dest: /root/k8s.gpg
+        owner: root
+    - name: copy docker apt-key
+      copy:
+        src: docker.gpg
+        dest: /root/docker.gpg
+        owner: root
+    - name: copy sysctl config
+      copy:
+        src: k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+        owner: root
+    - name: add k8s apt-key
+      command: apt-key add /root/k8s.gpg
+    - name: add docker apt-key
+      command: apt-key add /root/docker.gpg
+    - name: get lsb_release -cs
+      command: lsb_release -cs
+      register: release
+    - name: add docker repository
+      command: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{release.stdout}} stable"
+    - name: install containerd
+      apt: name=containerd.io=1.2.13-2 state=present update_cache=yes
+    - name: install docker-ce
+      apt: name=docker-ce=5:19.03.11~3-0~ubuntu-{{release.stdout}} state=present update_cache=yes
+    - name: create daemon.json
+      copy:
+        src: daemon.json
+        dest: /etc/docker/daemon.json
+        owner: root
+    - name: create docker service directory
+      file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        owner: root
+    - name: create .kube directory
+      file:
+        path: /root/.kube
+        state: directory
+        owner: root
+    - name: reload docker daemon
+      command: systemctl daemon-reload
+    - name: enable docker
+      command: systemctl enable docker
+    - name: restart docker
+      command: systemctl restart docker
+    - name: load netfilter
+      command: modprobe br_netfilter
+    - name: sysctl --system
+      command: sysctl --system
+    - name: add k8s apt repository
+      command: add-apt-repository "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main"
+    - name: install kubectl
+      apt: name=kubectl state=present update_cache=yes
+    - name: install kubeadm
+      apt: name=kubeadm state=present update_cache=yes
+    - name: install kubelet
+      apt: name=kubelet state=present update_cache=yes
+    - name: apt hold k8s version
+      command: apt-mark hold kubelet kubeadm kubectl
+    - name: daemon-reload
+      command: systemctl daemon-reload
+    - name: restart kubelet
+      command: systemctl restart kubelet
