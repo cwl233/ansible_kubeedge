@@ -24,8 +24,8 @@
           "Are you sure you want to proceed?": "y"
       register: result
 #    - debug: var=result
-    - name: kill edgecore
-      command: killall edgecore
+    - name: kill cloudcore
+      command: killall cloudcore
       ignore_errors: yes
     - name: kill edgecore
       command: killall edgecore
@@ -119,8 +119,8 @@
         dest: /root/.kube/config
     - name: turn off swap
       command: swapoff -a
-    - name: kill edgecore
-      command: killall edgecore
+    - name: kill cloudcore
+      command: killall cloudcore
       ignore_errors: yes
     - name: kill edgecore
       command: killall edgecore
