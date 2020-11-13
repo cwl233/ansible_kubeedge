@@ -24,8 +24,11 @@
           "Are you sure you want to proceed?": "y"
       register: result
 #    - debug: var=result
-    - name: kill cloudcore
-      command: killall cloudcore
+    - name: kill edgecore
+      command: killall edgecore
+      ignore_errors: yes
+    - name: kill edgecore
+      command: killall edgecore
       ignore_errors: yes
     - name: kubeadm init
       command: kubeadm init --image-repository registry.cn-hangzhou.aliyuncs.com/google_containers
@@ -116,6 +119,9 @@
         dest: /root/.kube/config
     - name: turn off swap
       command: swapoff -a
+    - name: kill edgecore
+      command: killall edgecore
+      ignore_errors: yes
     - name: kill edgecore
       command: killall edgecore
       ignore_errors: yes
