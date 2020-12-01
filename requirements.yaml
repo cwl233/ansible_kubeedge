@@ -88,12 +88,12 @@
       command: sysctl --system
     - name: add k8s apt repository
       command: add-apt-repository "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main"
-    - name: install kubectl
-      apt: name=kubectl state=present update_cache=yes
-    - name: install kubeadm
-      apt: name=kubeadm state=present update_cache=yes
-    - name: install kubelet
-      apt: name=kubelet state=present update_cache=yes
+    - name: install kubectl=1.18.12-00
+      apt: name=kubectl=1.18.12-00 state=present update_cache=yes
+    - name: install kubeadm=1.18.12-00
+      apt: name=kubeadm=1.18.12-00 state=present update_cache=yes
+    - name: install kubelet=1.18.12-00
+      apt: name=kubelet=1.18.12-00 state=present update_cache=yes
     - name: apt hold k8s version
       command: apt-mark hold kubelet kubeadm kubectl
     - name: daemon-reload
