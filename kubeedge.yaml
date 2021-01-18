@@ -51,11 +51,14 @@
         src: /root/.kube/config
         dest: /root/ansible_kubeedge/.kube/config
         flat: yes
-    - name: remove kube-proxy
+    - name: remove daemonset kube-proxy
       command: kubectl delete daemonset -n kube-system kube-proxy
       ignore_errors: True
-    - name: remove kube-dns
+    - name: remove deploy kube-dns
       command: kubectl delete deploy -n kube-system coredns
+      ignore_errors: True
+    - name: remove endpoint kube-dns
+      command: kubectl delete endpoint -n kube-system kube-dns
       ignore_errors: True
     - name: create kubeedge directory
       file:
@@ -67,14 +70,18 @@
         mode: 0755
     - name: create cloudcore.yaml
       shell: /root/kubeedge/cloud/cloudcore/cloudcore --defaultconfig > /etc/kubeedge/config/cloudcore.yaml
+    - name: copy device and objectsync yaml
+      copy:
+        src: /root/ansible_kubeedge/kubeedge_yaml/
+        dest: /root/kubeedge_yaml/
     - name: create kubeedge device
-      command: kubectl apply -f https://raw.githubusercontent.com/kubeedge/kubeedge/master/build/crds/devices/devices_v1alpha2_device.yaml
+      command: kubectl apply -f /root/kubeedge_yaml/devices_v1alpha2_device.yaml
     - name: create kubeedge devicemodel
-      command: kubectl apply -f https://raw.githubusercontent.com/kubeedge/kubeedge/master/build/crds/devices/devices_v1alpha2_devicemodel.yaml
+      command: kubectl apply -f /root/kubeedge_yaml/devices_v1alpha2_devicemodel.yaml
     - name: create kubeedge cluster_objectsync
-      command: kubectl apply -f https://raw.githubusercontent.com/kubeedge/kubeedge/master/build/crds/reliablesyncs/cluster_objectsync_v1alpha1.yaml
+      command: kubectl apply -f /root/kubeedge_yaml/cluster_objectsync_v1alpha1.yaml
     - name: create kubeedge objectsync
-      command: kubectl apply -f https://raw.githubusercontent.com/kubeedge/kubeedge/master/build/crds/reliablesyncs/objectsync_v1alpha1.yaml
+      command: kubectl apply -f /root/kubeedge_yaml/objectsync_v1alpha1.yaml
     - name: copy cloudcore.service
       copy:
         src: /root/ansible_kubeedge/cloudcore.service

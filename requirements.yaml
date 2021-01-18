@@ -11,24 +11,76 @@
       when: result.stderr!=''
     - name: ssh-copy
       authorized_key: user=root key="{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    - name: install python-apt
+      apt: name=python-apt state=present
     - name: install apt-transport-https
-      apt: name=apt-transport-https state=present update_cache=yes
+      apt: name=apt-transport-https state=present
     - name: install ca-certificates
-      apt: name=ca-certificates state=present update_cache=yes
+      apt: name=ca-certificates state=present
     - name: install curl
-      apt: name=curl state=present update_cache=yes
+      apt: name=curl state=present
     - name: install software-properties-common
-      apt: name=software-properties-common state=present update_cache=yes
+      apt: name=software-properties-common state=present
     - name: install gnupg2
-      apt: name=gnupg2 state=present update_cache=yes
+      apt: name=gnupg2 state=present
     - name: install python3-pip
-      apt: name=python3-pip state=present update_cache=yes
+      apt: name=python3-pip state=present
     - name: install pexpect
       command: pip3 install pexpect
+    #    - name: add yq repository
+    #      command: add-apt-repository ppa:rmescandon/yq
+    #    - name: install yq
+    #      command: snap install yq
+- hosts: [kubeedge_edge_arm64]
+  remote_user: root
+  tasks:
+#    - name: download yq for arm64
+#      command: wget https://github.com/mikefarah/yq/releases/download/v4.4.1/yq_linux_arm64.tar.gz
+    - name: download yq for arm64
+      get_url:
+        url: https://github.com/mikefarah/yq/releases/download/v4.4.1/yq_linux_arm64.tar.gz
+        dest: ~/yq_linux_arm64.tar.gz
+#    - name: install yq to /usr/bin
+#      command: tar -xf yq_linux_arm64.tar.gz -C /usr/bin
+    - name: intall yq to /usr/bin
+      unarchive:
+        src: ~/yq_linux_arm64.tar.gz
+        dest: /usr/bin
+        copy: no
+- hosts: [kubeedge_cloud,kubeedge_edge]
+  remote_user: root
+  tasks:
+#    - name: judge ssh keys
+#      shell: ls ~/.ssh/id_rsa.pub
+#      ignore_errors: True
+#      register: result
+#    - name: generate ssh keys
+#      command: ssh-keygen -N '' -f /root/.ssh/id_rsa
+#      when: result.stderr!=''
+#    - name: ssh-copy
+#      authorized_key: user=root key="{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+#    - name: install apt-transport-https
+#      apt: name=apt-transport-https state=present update_cache=yes
+#    - name: install ca-certificates
+#      apt: name=ca-certificates state=present update_cache=yes
+#    - name: install curl
+#      apt: name=curl state=present update_cache=yes
+#    - name: install software-properties-common
+#      apt: name=software-properties-common state=present update_cache=yes
+#    - name: install gnupg2
+#      apt: name=gnupg2 state=present update_cache=yes
+#    - name: install python3-pip
+#      apt: name=python3-pip state=present update_cache=yes
+#    - name: install pexpect
+#      command: pip3 install pexpect
+##    - name: add yq repository
+##      command: add-apt-repository ppa:rmescandon/yq
+##    - name: install yq
+##      command: snap install yq
 #    - name: add yq repository
-#      command: add-apt-repository ppa:rmescandon/yq
+#      command: add-apt-repository ppa:rmescandon/yq -y
 #    - name: install yq
-#      command: snap install yq
+#      apt: name=yq state=present update_cache=yes
     - name: add yq repository
       command: add-apt-repository ppa:rmescandon/yq -y
     - name: install yq
@@ -88,12 +140,14 @@
       command: sysctl --system
     - name: add k8s apt repository
       command: add-apt-repository "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main"
+    - name: remove k8s
+      command: apt remove kubeadm kubelet kubectl -y --allow-change-held-packages
     - name: install kubectl=1.18.12-00
-      apt: name=kubectl=1.18.12-00 state=present update_cache=yes
+      apt: name=kubectl=1.18.12-00 state=present update_cache=yes force=true
     - name: install kubeadm=1.18.12-00
-      apt: name=kubeadm=1.18.12-00 state=present update_cache=yes
+      apt: name=kubeadm=1.18.12-00 state=present update_cache=yes force=true
     - name: install kubelet=1.18.12-00
-      apt: name=kubelet=1.18.12-00 state=present update_cache=yes
+      apt: name=kubelet=1.18.12-00 state=present update_cache=yes force=true
     - name: apt hold k8s version
       command: apt-mark hold kubelet kubeadm kubectl
     - name: daemon-reload
