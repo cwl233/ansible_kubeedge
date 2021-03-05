@@ -27,81 +27,32 @@
       apt: name=python3-pip state=present
     - name: install pexpect
       command: pip3 install pexpect
-    #    - name: add yq repository
-    #      command: add-apt-repository ppa:rmescandon/yq
-    #    - name: install yq
-    #      command: snap install yq
-- hosts: [kubeedge_edge_arm64]
+
+- hosts: [ kubeedge_edge_arm64 ]
   remote_user: root
   tasks:
-#    - name: download yq for arm64
-#      command: wget https://github.com/mikefarah/yq/releases/download/v4.4.1/yq_linux_arm64.tar.gz
     - name: download yq for arm64
-      get_url:
-        url: https://github.com/mikefarah/yq/releases/download/v4.4.1/yq_linux_arm64.tar.gz
-        dest: ~/yq_linux_arm64.tar.gz
-#    - name: install yq to /usr/bin
-#      command: tar -xf yq_linux_arm64.tar.gz -C /usr/bin
-    - name: intall yq to /usr/bin
-      unarchive:
-        src: ~/yq_linux_arm64.tar.gz
-        dest: /usr/bin
-        copy: no
-- hosts: [kubeedge_cloud,kubeedge_edge]
+      copy:
+        src: /root/yq_linux_arm64
+        dest: /usr/bin/yq_linux_arm64
+        mode: 0755
+#    - name: intall yq to /usr/bin
+#      unarchive:
+#        src: ~/yq_linux_arm64.tar.gz
+#        dest: /usr/bin
+#        copy: no
+- hosts: [ kubeedge_cloud,kubeedge_edge ]
   remote_user: root
   tasks:
-#    - name: judge ssh keys
-#      shell: ls ~/.ssh/id_rsa.pub
-#      ignore_errors: True
-#      register: result
-#    - name: generate ssh keys
-#      command: ssh-keygen -N '' -f /root/.ssh/id_rsa
-#      when: result.stderr!=''
-#    - name: ssh-copy
-#      authorized_key: user=root key="{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
-#    - name: install apt-transport-https
-#      apt: name=apt-transport-https state=present update_cache=yes
-#    - name: install ca-certificates
-#      apt: name=ca-certificates state=present update_cache=yes
-#    - name: install curl
-#      apt: name=curl state=present update_cache=yes
-#    - name: install software-properties-common
-#      apt: name=software-properties-common state=present update_cache=yes
-#    - name: install gnupg2
-#      apt: name=gnupg2 state=present update_cache=yes
-#    - name: install python3-pip
-#      apt: name=python3-pip state=present update_cache=yes
-#    - name: install pexpect
-#      command: pip3 install pexpect
-##    - name: add yq repository
-##      command: add-apt-repository ppa:rmescandon/yq
-##    - name: install yq
-##      command: snap install yq
-#    - name: add yq repository
-#      command: add-apt-repository ppa:rmescandon/yq -y
-#    - name: install yq
-#      apt: name=yq state=present update_cache=yes
     - name: add yq repository
       command: add-apt-repository ppa:rmescandon/yq -y
     - name: install yq
       apt: name=yq state=present update_cache=yes
-    - name: copy k8s apt-key
-      copy:
-        src: k8s.gpg
-        dest: /root/k8s.gpg
-        owner: root
     - name: copy docker apt-key
       copy:
         src: docker.gpg
         dest: /root/docker.gpg
         owner: root
-    - name: copy sysctl config
-      copy:
-        src: k8s.conf
-        dest: /etc/sysctl.d/k8s.conf
-        owner: root
-    - name: add k8s apt-key
-      command: apt-key add /root/k8s.gpg
     - name: add docker apt-key
       command: apt-key add /root/docker.gpg
     - name: get lsb_release -cs
@@ -123,6 +74,21 @@
         path: /etc/systemd/system/docker.service.d
         state: directory
         owner: root
+- hosts: all
+  remote_user: root
+  tasks:
+    - name: copy k8s apt-key
+      copy:
+        src: k8s.gpg
+        dest: /root/k8s.gpg
+        owner: root
+    - name: copy sysctl config
+      copy:
+        src: k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+        owner: root
+    - name: add k8s apt-key
+      command: apt-key add /root/k8s.gpg
     - name: create .kube directory
       file:
         path: /root/.kube
@@ -143,11 +109,11 @@
     - name: remove k8s
       command: apt remove kubeadm kubelet kubectl -y --allow-change-held-packages
     - name: install kubectl=1.18.12-00
-      apt: name=kubectl=1.18.12-00 state=present update_cache=yes force=true
+      apt: name=kubectl=1.18.12-00 state=present force=true
     - name: install kubeadm=1.18.12-00
-      apt: name=kubeadm=1.18.12-00 state=present update_cache=yes force=true
+      apt: name=kubeadm=1.18.12-00 state=present force=true
     - name: install kubelet=1.18.12-00
-      apt: name=kubelet=1.18.12-00 state=present update_cache=yes force=true
+      apt: name=kubelet=1.18.12-00 state=present force=true
     - name: apt hold k8s version
       command: apt-mark hold kubelet kubeadm kubectl
     - name: daemon-reload

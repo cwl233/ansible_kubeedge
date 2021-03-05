@@ -1,0 +1,25 @@
+---
+- hosts: kubeedge_cloud
+  remote_user: root
+  tasks:
+    - name: delete nodes node1
+      command: kubectl delete node node1
+      ignore_errors: yes
+    - name: kubeadm reset
+      expect:
+        command: kubeadm reset
+        responses:
+          "Are you sure you want to proceed?": "y"
+    - name: stop cloudcore
+      command: service cloudcore stop
+    - name: kill cloudcore
+      command: killall cloudcore
+      ignore_errors: yes
+- hosts: [ kubeedge_edge, kubeedge_edge_arm64 ]
+  remote_user: root
+  tasks:
+    - name: service edgecore stop
+      command: service edgecore stop
+    - name: docker rm -f $(docker ps -aq)
+      shell: docker rm -f $(docker ps -aq)
+      ignore_errors: yes

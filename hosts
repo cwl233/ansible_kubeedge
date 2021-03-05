@@ -1,10 +1,10 @@
 [kubeedge_cloud]
-cloud_server ansible_ssh_host=192.168.2.140 ansible_ssh_user=root ansible_ssh_pass=123
+cloud_server ansible_ssh_host=192.168.2.140 ansible_ssh_user=root ansible_ssh_pass=linke123
 
 [kubeedge_edge]
-edge_server1 ansible_ssh_host=192.168.2.145 ansible_ssh_user=root ansible_ssh_pass=123
-edge_server2 ansible_ssh_host=192.168.2.177 ansible_ssh_user=root ansible_ssh_pass=123
-edge_server3 ansible_ssh_host=192.168.2.135 ansible_ssh_user=root ansible_ssh_pass=123
+edge_server1 ansible_ssh_host=192.168.2.145 ansible_ssh_user=root ansible_ssh_pass=linke123
+edge_server2 ansible_ssh_host=192.168.2.177 ansible_ssh_user=root ansible_ssh_pass=linke123
+edge_server3 ansible_ssh_host=192.168.2.135 ansible_ssh_user=root ansible_ssh_pass=linke123
 
 [kubeedge_edge_arm64]
 edge_server_nano15 ansible_ssh_host=192.168.2.110 ansible_ssh_user=root ansible_ssh_pass=123

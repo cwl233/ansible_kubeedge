@@ -1,0 +1,97 @@
+---
+- hosts: [ kubeedge_edge_arm64 ]
+  remote_user: root
+  tasks:
+    - name: kubeadm reset
+      expect:
+        command: kubeadm reset
+        responses:
+          "Are you sure you want to proceed?": "y"
+      register: result
+    - name: delete kubeedge directory
+      file:
+        path: /etc/kubeedge/
+        state: absent
+    - name: clear kubeedge binary
+      file:
+        path: /root/kubeedge/
+        state: absent
+    - name: copy kubeedge binary
+      copy:
+        src: /root/ansible_kubeedge/kubeedge_arm64/
+        dest: /root/kubeedge/
+        owner: root
+    - name: remove .kube directory
+      file:
+        path: /root/.kube/
+        state: absent
+    - name: create .kube directory
+      file:
+        path: /root/.kube/
+        state: directory
+    - name: copy .kube file
+      copy:
+        src: /root/ansible_kubeedge/.kube/config
+        dest: /root/.kube/config
+    - name: turn off swap
+      command: swapoff -a
+    - name: kill cloudcore
+      command: killall cloudcore
+      ignore_errors: yes
+    - name: kill edgecore
+      command: killall edgecore
+      ignore_errors: yes
+    - name: create kubeedge directory
+      file:
+        path: /etc/kubeedge/config/
+        state: directory
+    - name: chmod +x cloudcore binary
+      file:
+        path: /root/kubeedge/edge/edgecore
+        mode: 0755
+    - name: create edgecore.yaml
+      shell: /root/kubeedge/edge/edgecore --defaultconfig > /etc/kubeedge/config/edgecore.yaml
+#    - name: change cgroups driver
+#      replace:
+#        path: /etc/kubeedge/config/edgecore.yaml
+#        regexp: cgroupfs
+#        replace: systemd
+    - name: get token
+      shell: kubectl get secret -nkubeedge tokensecret -o=jsonpath='{.data.tokendata}' | base64 -d
+      register: result
+    #    - debug: var=result
+    - name: set token
+      replace:
+        path: /etc/kubeedge/config/edgecore.yaml
+        regexp: 'token: ""'
+        replace: 'token: "{{result.stdout}}"'
+    - name: set server ip
+      replace:
+        path: /etc/kubeedge/config/edgecore.yaml
+        regexp: 'token: ""'
+        replace: 'token: "{{hostvars[''cloud_server''][''ansible_ssh_host'']}}"'
+    - name: stop kubelet
+      command: systemctl stop kubelet
+    - name: copy edgecore.service
+      copy:
+        src: /root/ansible_kubeedge/edgecore.service
+        dest: /etc/systemd/system/edgecore.service
+    - name: enable edgecore.service
+      command: systemctl enable edgecore.service
+    - name: restart cloudcore.service
+      command: systemctl restart edgecore.service
+    #    - debug: var=hostvars['cloud_server']['ansible_ssh_host']
+    - name: edit modules.edgeHub.httpServer
+      command: yq_linux_arm64 w -i /etc/kubeedge/config/edgecore.yaml modules.edgeHub.httpServer https://{{hostvars['cloud_server']['ansible_ssh_host']}}:10002
+    - name: edit modules.edgeHub.quic.server
+      command: yq_linux_arm64 w -i /etc/kubeedge/config/edgecore.yaml modules.edgeHub.quic.server {{hostvars['cloud_server']['ansible_ssh_host']}}:10001
+    - name: edit modules.edgeHub.websocket.server
+      command: yq_linux_arm64 w -i /etc/kubeedge/config/edgecore.yaml modules.edgeHub.websocket.server {{hostvars['cloud_server']['ansible_ssh_host']}}:10000
+    - name: copy edgecore.service
+      copy:
+        src: /root/ansible_kubeedge/edgecore.service
+        dest: /etc/systemd/system/edgecore.service
+    - name: enable edgecore.service
+      command: systemctl enable edgecore.service
+    - name: restart edgecore.service
+      command: systemctl restart edgecore.service
