@@ -1,0 +1,54 @@
+---
+- hosts: kubeedge_cloud
+  remote_user: root
+  tasks:
+  - name: turn off swap
+    command: swapoff -a
+  - name: kubeadm reset
+    expect:
+      command: kubeadm reset
+      responses:
+        "Are you sure you want to proceed?": "y"
+    register: result
+  - name: kubeadm init
+    command: kubeadm init --image-repository registry.cn-hangzhou.aliyuncs.com/google_containers --pod-network-cidr 10.244.0.0/16
+  - name: remove .kube directory
+    file:
+      path: /root/.kube/
+      state: absent
+  - name: create .kube directory
+    file:
+      path: /root/.kube/
+      state: directory
+  - name: copy .kube file
+    command: cp /etc/kubernetes/admin.conf /root/.kube/config
+  - name: fetch .kube file
+    fetch:
+      src: /root/.kube/config
+      dest: /root/ansible_kubeedge/.kube/config
+      flat: yes
+  - name: get token
+    shell: kubeadm token list  | awk -F" " '{print $1}' |tail -n 1
+    register: token
+  - name: get hash of certificate
+    shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed  's/^ .* //' | awk -F" " '{print $2}'
+    register: hash
+  - name: copy flannel.yaml
+    copy:
+      src: /root/ansible_kubeedge/flannel.yaml
+      dest: /root/flannel.yaml
+  - name: apply flannel
+    command: kubectl apply -f /root/flannel.yaml
+#  - debug: var=token
+- hosts: [ kubeedge_edge,kubeedge_edge_arm64 ]
+  remote_user: root
+  vars:
+    token: "{{hostvars['cloud_server']['token']['stdout']}}"
+    hash: "{{hostvars['cloud_server']['hash']['stdout']}}"
+  tasks:
+  - name: turn off swap
+    command: swapoff -a
+  - name: edge join
+    shell: kubeadm join {{hostvars['cloud_server']['ansible_ssh_host']}}:6443 --token {{token}} --discovery-token-ca-cert-hash sha256:{{hash}}
+    register: result
+#  - debug: var=hash

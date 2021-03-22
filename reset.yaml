@@ -15,11 +15,24 @@
     - name: kill cloudcore
       command: killall cloudcore
       ignore_errors: yes
+    - name: service kubelet stop
+      command: service kubelet stop
 - hosts: [ kubeedge_edge, kubeedge_edge_arm64 ]
   remote_user: root
   tasks:
     - name: service edgecore stop
       command: service edgecore stop
+      ignore_errors: yes
+    - name: service kubelet stop
+      command: service kubelet stop
+    - name: kubeadm reset
+      expect:
+        command: kubeadm reset
+        responses:
+          "Are you sure you want to proceed?": "y"
     - name: docker rm -f $(docker ps -aq)
       shell: docker rm -f $(docker ps -aq)
+      ignore_errors: yes
+    - name: delete cni0
+      command: ip link delete cni0
       ignore_errors: yes
